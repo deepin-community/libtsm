@@ -1,0 +1,6 @@
+libtsm.so.4 libtsm4 #MINVER#
+* Build-Depends-Package: libtsm-dev
+ (symver)LIBTSM_1 4.0.1
+ (symver)LIBTSM_2 4.0.1
+ (symver)LIBTSM_3 4.0.1
+ (symver)LIBTSM_4 4.0.1

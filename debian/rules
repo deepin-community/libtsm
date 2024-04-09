@@ -1,4 +1,51 @@
 #!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+include /usr/share/dpkg/default.mk
+
+
+export DEB_BUILD_MAINT_OPTIONS := qa=+bug hardening=+all reproducible=+all
+export DPKG_GENSYMBOLS_CHECK_LEVEL := 4
+
 
 %:
 	dh $@
+
+
+override_dh_auto_configure:
+	dh_auto_configure -B build-shared -- -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	                                     -DBUILD_SHARED_LIBS=ON \
+	                                     -DBUILD_TESTING=$(if $(filter nocheck,$(DEB_BUILD_OPTIONS) $(DEB_BUILD_PROFILES)),OFF,ON) \
+	                                     $(empty)
+	DEB_BUILD_MAINT_OPTIONS="$(DEB_BUILD_MAINT_OPTIONS) optimize=-lto" \
+		dh_auto_configure -B build-static --reload-all-buildenv-variables -- \
+		                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	                                     -DBUILD_SHARED_LIBS=OFF \
+	                                     -DBUILD_TESTING=$(if $(filter nocheck,$(DEB_BUILD_OPTIONS) $(DEB_BUILD_PROFILES)),OFF,ON) \
+	                                     $(empty)
+
+override_dh_auto_build:
+	dh_auto_build -B build-shared
+	dh_auto_build -B build-static
+
+override_dh_auto_test:
+	dh_auto_test -B build-shared
+	dh_auto_test -B build-static
+
+override_dh_auto_install:
+	dh_auto_install -B build-static
+	# Delete static library's cmake files, so only the shared library versions
+	# are installed
+	rm -r debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/cmake
+	dh_auto_install -B build-shared
+
+override_dh_installdocs:
+	dh_installdocs -plibtsm-dev --link-doc=libtsm4
+	dh_installdocs --remaining-packages
+
+override_dh_auto_clean:
+	dh_auto_clean -B build-shared
+	dh_auto_clean -B build-static
